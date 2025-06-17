@@ -1,0 +1,45 @@
+name: Unified MDM CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Verify project structure
+        run: |
+          # Check essential directories exist
+          for dir in unified-mdm/{api,frontend,config,fleetdm,headwind-mdm,micromdm,grafana,prometheus}; do
+            if [ ! -d "$dir" ]; then
+              echo "❌ Missing required directory: $dir"
+              exit 1
+            fi
+          done
+          echo "✅ Project structure verification passed"
+
+  validate-docker-compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Validate Docker Compose configuration
+        run: |
+          cd unified-mdm
+          docker-compose config -q
+          if [ $? -eq 0 ]; then
+            echo "✅ Docker Compose configuration is valid"
+          else
+            echo "❌ Docker Compose configuration is invalid"
+            exit 1
+          fi
